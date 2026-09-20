@@ -1,43 +1,35 @@
-Especificación de Arquitectura e Infraestructura: StockFlow APIDocumentación Técnica del Sistema: StockFlow APIVersión: 1.0.0Framework: .NET 10.0Motor de Base de Datos: PostgreSQL v18Patrón Arquitectónico: Clean Architecture con Minimal APIs1. Módulos y Middleware del Pipeline[ Cliente HTTP ]
-       │
-       ▼
-┌─────────────────────────────────────────┐
-│ GlobalExceptionHandler (IExceptionHandler)│ ──► Devuelve ProblemDetails (500) en errores no controlados
-└────────────────────┬────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────┐
-│ Endpoint Routing / Minimal API Group    │
-└────────────────────┬────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────┐
-│ ValidationFilter<T> (IEndpointFilter)   │ ──► Captura errores con FluentValidation y retorna 400 Bad Request
-└────────────────────┬────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────┐
-│ EF Core + Npgsql (PostgreSQL v18)       │
-└─────────────────────────────────────────┘
-2. Definición de EndpointsMétodoRutaParámetros / BodyDescripciónRespuesta ExitosaGET/productsQuery: Search, MinPrice, MaxPrice, Page, PageSizeConsulta paginada y filtrada200 OK (Objeto con Data, Page, TotalCount)GET/products/{id}Route: id (int)Obtiene un producto por su clave primaria200 OK (Objeto ProductDto) / 404 Not FoundPOST/productsBody: CreateProductDtoRegistra un nuevo producto201 Created / 400 Bad Request (ProblemDetails)PUT/products/{id}Route: id (int), Body: UpdateProductDtoActualiza un producto existente204 No Content / 400 Bad Request / 404 Not FoundDELETE/products/{id}Route: id (int)Elimina un producto por ID204 No Content / 404 Not Found3. Esquemas de Datos (DTOs)Filtro y Paginación (ProductFilterDto)C#public record ProductFilterDto(
-    string? Search = null,
-    decimal? MinPrice = null,
-    decimal? MaxPrice = null,
-    int Page = 1,
-    int PageSize = 10
-);
-Respuesta PaginadaJSON{
-  "totalCount": 1,
-  "page": 1,
-  "pageSize": 10,
-  "totalPages": 1,
-  "data": [
-    {
-      "id": 1,
-      "name": "Monitor 24 Pulgadas",
-      "price": 185.50,
-      "stock": 12
-    }
-  ]
-}
-4. Estándares de Manejo de ErroresError de Validación (HTTP 400 - RFC 9110)Devuelto de forma interceptada por ValidationFilter<T> cuando los datos de entrada violan las reglas definidas en FluentValidation.Error Interno del Servidor (HTTP 500 - RFC 7807)Devuelto por GlobalExceptionHandler al interceptar excepciones no controladas mediante la interfaz IExceptionHandler.
+# StockFlow API
+
+API RESTful para la gestión y trazabilidad de inventarios y control de stock construida con **.NET 10** y **PostgreSQL 16**.
+
+Este proyecto implementa una arquitectura ligera basada en Minimal APIs y manejo global de excepciones, diseñada para la administración de productos, categorías y movimientos de stock con persistencia relacional aislada en Docker.
+
+---
+
+## 🛠️ Stack y Tecnologías
+
+* **Runtime & Framework:** .NET 10 (Minimal APIs)
+* **Persistencia:** Entity Framework Core 10 (PostgreSQL 16)
+* **Validación:** FluentValidation
+* **Pruebas HTTP:** Archivo ejecutable `.http` integrado
+* **Infraestructura:** Docker & Docker Compose
+
+---
+
+## 📂 Estructura del Proyecto
+
+```text
+StockFlow/
+├── docker-compose.yml
+├── README.md
+├── .gitignore
+└── StockFlow.Api/
+    ├── Data/                 # DbContext y Migraciones EF Core
+    ├── Dtos/                 # Data Transfer Objects
+    ├── Endpoints/            # Minimal APIs (Products, Stock)
+    ├── Exceptions/           # Middleware de manejo global de errores
+    ├── Models/               # Entidades de Dominio
+    ├── Validators/           # Reglas de validación
+    ├── StockFlow.http        # Cliente HTTP para pruebas de endpoints
+    ├── Dockerfile            # Compilación multicapa de .NET 10
+    └── .dockerignore         # Exclusión de binarios y temporales
